@@ -324,19 +324,6 @@ class BuildLoop(TickingWidget):
     def on_touch_up(self, touch):
         if self.touch_uid == touch.uid:
             gesture_data = self.parent.gesture_helper.touch_up(touch)
-            if gesture_data['pinch_type']:
-                if gesture_data['pinch_buddy']['pinch_type']:
-                    if gesture_data['pinch_buddy']['done']:
-                        if gesture_data['pinch_buddy']['pinch_buddy']['uid'] == touch.uid:
-                            pass
-                        else:
-                            print '-buddy mismatch'
-                    else:
-                        print '-buddy not done'
-                else:
-                    print '-buddy not a pinch'
-            else:
-                print '-not a pinch'
             if (gesture_data['pinch_type'] and
                     gesture_data['pinch_buddy']['pinch_type'] and
                     gesture_data['pinch_buddy']['done'] and
@@ -352,9 +339,7 @@ class BuildLoop(TickingWidget):
                         for x in range(-4, 5) for y in range(-4, 5)]
                 candidates.sort(key=lambda (x, y):
                         (abs(x - int_tile[0]), abs(y - int_tile[1])))
-                print '----'
                 for candidate in candidates:
-                    print candidate
                     if self.parent.set_wall(candidate, build):
                         # Successful change to the maze, show some SFX
                         particle_shower(

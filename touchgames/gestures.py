@@ -28,10 +28,7 @@ def pinch_helper(a, b, finger_size):
             distance_between_ends = distance(a_end, b_end)
             if distance_between_ends < 4 * finger_size:
                 midpoint = (a_end + b_end) / 2
-                print 'pinch'
                 return -distance_between_ends, 'pinch', tuple(midpoint)
-            else:
-                print 'pinch too distant'
         # Unpinch gesture
         dir2 = math.atan2(a_start[1] - b_start[1], a_start[0] - b_start[0])
         if (abs(normalize_angle(math.pi + a['direction'] - dir2)) >
@@ -39,13 +36,7 @@ def pinch_helper(a, b, finger_size):
             distance_between_starts = distance(a_start, b_start)
             if distance_between_starts < 4 * finger_size:
                 midpoint = (a_start + b_start) / 2
-                print 'unpinch'
                 return -distance_between_starts, 'unpinch', tuple(midpoint)
-            else:
-                print 'unpinch too distant'
-        print 'not pinch, not unpinch'
-    else:
-        print 'not opposing'
     return 0, None, None
 
 class GestureHelper(object):
@@ -104,14 +95,6 @@ class GestureHelper(object):
             d['type'] = 'point'
         else:
             d['type'] = 'line'
-        '''
-        print '---'
-        print d['mean']
-        print d['bounding_box']
-        print d['direction']
-        print d['type']
-        print d['done']
-        '''
         (pinch_score, pinch_type, midpoint), other = min(
                 (pinch_helper(d, c, self.finger_size), c)
                 for c in d['concurrent_touches'].values())
