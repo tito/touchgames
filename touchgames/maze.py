@@ -279,9 +279,9 @@ class BuildLoop(TickingWidget):
             with self.canvas:
                 # Create the ring of “satellite” points
                 self.color_instruction = Color(1, 1, 0, 0)
-                self.points = Point(points=self.pos, pointsize=5,
+                self.points = Point(points=touch.pos, pointsize=5,
                     source='particle.png')
-                self.translate_instruction = Translate(self.pos[0], self.pos[1], 0)
+                self.translate_instruction = Translate(touch.x, touch.y, 0)
                 self.scale_instruction = Scale(self.parent.cell_size * 10)
                 self.rotate_instruction = Rotate(0, 0, 0, 1)
                 self.rscale_instruction = Scale(1)
