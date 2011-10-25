@@ -122,7 +122,7 @@ class Replay(App):
 
     This is more of a dirty hack than other parts of the code.
     """
-    def __init__(self, log_filename):
+    def __init__(self, log_filename, clock_speed=1):
         super(Replay, self).__init__()
         self.log_filename = log_filename
         kivy.clock.time = self.time
