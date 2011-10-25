@@ -25,7 +25,9 @@ class LoggedApp(App):
 
     def build(self):
         self.logger = parent = Logger()
-        parent.add_widget(self.widget_class())
+        widget = self.widget_class()
+        parent.add_widget(widget)
+        widget.parent_app = self
 
         return parent
 
@@ -51,7 +53,9 @@ class Logger(Widget):
         super(Logger, self).__init__(**kwargs)
         Clock.schedule_once(self.tick)
 
+        self.closed = False
         log_filename = 'log-%s.log' % datetime.now().isoformat()
+        self.log_filename = log_filename
         self._fileobj = fileobj = open(log_filename, 'wb')
         self.stream = gzip.GzipFile(fileobj=fileobj)
         self.log('random', random.getstate())
@@ -92,12 +96,14 @@ class Logger(Widget):
         self.log(action, touch_attrs)
 
     def log(self, *args):
-        pickle.dump(args, self.stream, protocol=2)
-        self.stream.flush()
+        if not self.closed:
+            pickle.dump(args, self.stream, protocol=2)
+            self.stream.flush()
 
     def close(self):
         self.stream.close()
         self._fileobj.close()
+        self.closed = True
 
 class ReplayMotionEvent(MotionEvent):
     """A dummy MotionEvent, since kivy won't let us use MotionEvent directly

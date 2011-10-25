@@ -33,7 +33,7 @@ BALL_SPEED = 10  # tiles per second
 BALL_TOUCH_RADIUS = 1.5  # tiles
 BALL_ZOC_RADIUS = 7  # tiles
 MIN_LOOP_AREA = 3  # tiles squared
-NUM_ROUNDS = 2
+NUM_ROUNDS = 1
 
 def yield_groups(source, n):
     """Divide an iterator into tuples of n consecutive elements
@@ -1064,6 +1064,7 @@ class MazeGame(Widget):
                 self.set_message(True, '')
                 self.set_message(False, '')
                 self.full_redraw()
+                self.add_replay()
         if self.current_solver:
             self.round_number += 1
             self.current_solver = 0
@@ -1093,6 +1094,27 @@ class MazeGame(Widget):
     def on_touch_up(self, touch):
         self.transform_touch(super(MazeGame, self).on_touch_up, touch)
         return True
+
+    def add_replay(self):
+        try:
+            self.parent_app
+        except AttributeError:
+            return
+        else:
+            self.parent_app.logger.close()
+            print self.parent_app.logger.log_filename
+            from touchgames.replay import Replay
+            replay = Replay(self.parent_app.logger.log_filename)
+            replay_widget = replay.build()
+            self.add_widget(replay_widget)
+            with replay_widget.canvas.before:
+                factor = 0.6
+                Translate(
+                        self.get_parent_window().width * (1 - factor) / 2,
+                        self.get_parent_window().height * (1 - factor) / 2,
+                        0,
+                    )
+                Scale(factor)
 
 def time_format(seconds):
     """Format a time in seconds for the clock display (mm:ss.ss)
