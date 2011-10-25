@@ -17,7 +17,8 @@ from kivy.uix.widget import Widget
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.graphics import (Color, Ellipse, Line, Rectangle, Point,
-    Rotate, Translate, Scale, PushMatrix, PopMatrix)
+    Rotate, Translate, Scale, PushMatrix, PopMatrix,
+    StencilPush, StencilUse, StencilPop)
 from kivy.clock import Clock
 from kivy.animation import Animation
 from kivy.graphics.transformation import Matrix
@@ -25,7 +26,7 @@ from kivy.graphics.instructions import Canvas
 
 from touchgames.mazesolver import solvemaze
 from touchgames.util import FilledCircle, HollowCircle
-from touchgames.replay import Logger
+from touchgames.replay import LoggedApp
 from touchgames.gestures import GestureHelper
 
 COUNTDOWN_START = 5
@@ -34,7 +35,7 @@ BALL_SPEED = 10  # tiles per second
 BALL_TOUCH_RADIUS = 1.5  # tiles
 BALL_ZOC_RADIUS = 7  # tiles
 MIN_LOOP_AREA = 3  # tiles squared
-NUM_ROUNDS = 2
+NUM_ROUNDS = 1
 
 def yield_groups(source, n):
     """Divide an iterator into tuples of n consecutive elements
@@ -50,6 +51,7 @@ class BallSource(Widget):
     Provides collision detection, which is checked when balls are generated.
     """
     def __init__(self, **kwargs):
+        kwargs.setdefault('size', (0, 0))
         super(BallSource, self).__init__(**kwargs)
 
     def grow(self, size):
@@ -59,20 +61,26 @@ class BallSource(Widget):
         animation.start(self)
         tick = schedule_tick(self.tick)
         Clock.schedule_once(lambda dt: Clock.unschedule(tick), 2)
+        self.size = size, size
 
     def tick(self, dt):
         """Redraw the widget (kivy won't update it automatically)
         """
         size = self.size[0]
         self.canvas.clear()
-        with self.canvas:
-            Color(0, 0, 1, 0.5)
-            Ellipse(
-                    pos=[p - s for p, s in zip(self.pos, self.size)],
-                    size=[x * 2 - 1 for x in self.size],
-                )
-            Color(1, 1, 1, 1)
-            HollowCircle(self.pos, self.size[0])
+        if size:
+            with self.canvas:
+                StencilPush()
+                Rectangle(pos=[p - size for p in self.pos], size=self.size)
+                StencilUse()
+                Color(0, 0, 1, 0.5)
+                Ellipse(
+                        pos=[p - s for p, s in zip(self.pos, self.size)],
+                        size=[x * 2 - 1 for x in self.size],
+                    )
+                Color(1, 1, 1, 1)
+                HollowCircle(self.pos, self.size[0])
+                StencilPop()
 
     def collide_point(self, x, y):
         px, py = self.pos
@@ -401,6 +409,7 @@ class MazeBoard(TickingWidget):
             # `window_width` & `window_height`: dimensions of the window, in pixels
             self.window_width = win.width
             self.window_height = win.height
+
 
         # `matrix`: the matrix holding the maze. Values in this matrix are:
         # - nonnegative numbers: corridors; the value represents the shortest
@@ -940,6 +949,7 @@ class MazeGame(Widget):
                 self.set_message(True, '')
                 self.set_message(False, '')
                 self.full_redraw()
+                self.add_replay()
         if self.current_solver:
             self.round_number += 1
             self.current_solver = 0
@@ -969,6 +979,37 @@ class MazeGame(Widget):
     def on_touch_up(self, touch):
         self.transform_touch(super(MazeGame, self).on_touch_up, touch)
         return True
+
+    def add_replay(self):
+        try:
+            self.parent_app
+        except AttributeError:
+            Clock.schedule_once(exit, 2.5)
+            return
+
+        with self.canvas:
+            factor = 0.6
+            Translate(
+                    self.get_parent_window().width * (1 - factor) / 2,
+                    self.get_parent_window().height * (1 - factor) / 2,
+                    0,
+                )
+            Scale(factor)
+            color_instruction = Color(1, 1, 1, 0)
+            Rectangle(pos=(-2, -2), size=[x+4 for x in self.get_parent_window().size])
+        animation = Animation(a=0.5, t='in_cubic', duration=2)
+        animation.start(color_instruction)
+        def end_flash(dt):
+            animation = Animation(a=0, t='out_cubic', duration=0.5)
+            animation.start(color_instruction)
+        Clock.schedule_once(end_flash, 2)
+        def add_replay(dt):
+            self.parent_app.logger.close()
+            from touchgames.replay import Replay
+            replay = Replay(self.parent_app.logger.log_filename, clock_speed=0.9)
+            replay_widget = replay.build()
+            self.add_widget(replay_widget)
+        Clock.schedule_once(add_replay, 2.5)
 
 def time_format(seconds):
     """Format a time in seconds for the clock display (mm:ss.ss)
@@ -1138,20 +1179,8 @@ def schedule_tick(f):
     Clock.schedule_once(tick)
     return tick
 
-class MazeApp(App):
-    """The Kivy app for the maze game
-    """
-    def __init__(self, replay=None):
-        super(MazeApp, self).__init__()
-
-    def build(self):
-        parent = Logger()
-        parent.add_widget(MazeGame())
-
-        return parent
-
 if __name__ == '__main__':
     # re-importing this file so the classes are pickle-able
     # (otherwise they'd be pickled as  e.g. ‘__main__.MazeApp’ – useless)
-    from touchgames.maze import MazeApp
-    MazeApp().run()
+    from touchgames.maze import MazeGame
+    LoggedApp(MazeGame).run()
