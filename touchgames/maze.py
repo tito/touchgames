@@ -712,8 +712,6 @@ class MazeBoard(TickingWidget):
                 )
             self.add_widget(build_loop)
             build_loop.on_touch_down(touch, force=True)
-            self.parent.set_message(False,
-                    "Touch and hold to build or destroy corridors.")
 
     def win(self):
         """End the current round, destroy the widget.
@@ -763,7 +761,7 @@ class MazeGame(Widget):
         self.board = MazeBoard()
         self.add_widget(self.board)
         self.set_message(True, 'Wait...')
-        self.set_message(False, 'Draw a loop to modify the maze.')
+        self.set_message(False, "Touch and hold to build or destroy corridors.")
 
     def add_time(self, time):
         """Add some time th the current solver's clock
